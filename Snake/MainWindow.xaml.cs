@@ -148,7 +148,7 @@ namespace Snake
 
                 //Random j from 0-100, each time 5 <= j <= 10 apple will be appeared. It means 5% a appear the apple in fruits 
                 Random randFruit = new Random();
-                int j = randFruit.Next(10);
+                int j = randFruit.Next(100);
                 if (j<=10&&j>=5)
                 {
                     FruitIndex = 2;
