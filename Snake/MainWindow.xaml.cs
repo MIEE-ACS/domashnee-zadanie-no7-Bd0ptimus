@@ -18,6 +18,9 @@ namespace Snake
     /// <summary>
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
+    /// ДЗ 7. Вариант 2. Буй Тхе Зунг. УТС-22
+    /// Include function : - Randomly appear apple at 5%
+    ///                    - If the snake eats that apple, the snake will have an additional helmet and can go through the wall 5 times
     public partial class MainWindow : Window
     {
         //Поле на котором живет змея
@@ -32,7 +35,11 @@ namespace Snake
         int score;
         //таймер по которому 
         DispatcherTimer moveTimer;
-        
+
+        int FruitIndex = 1; //The index allows to determine the type of fruit in the game, the FruitIndex = 1 is the normal fruit, the FruitIndex = 2 is the apple
+        int ThroughWall = 0; //The index allows to go through the wall, the ThroughWall = 0 is not allowed go through, the FruitIndex = 1 is allowed go through
+        int CountWallTimes = 0; //The index allows to determine how many time did the snake go through the walls 
+
         //конструктор формы, выполняется при запуске программы
         public MainWindow()
         {
@@ -89,31 +96,117 @@ namespace Snake
                 }
             }
 
-            //проверяем, что голова змеи не вышла за пределы поля
-            if (head.x < 40 || head.x >= 540 || head.y < 40 || head.y >= 540)
+            // if_else : Determine when snake can go through the wall
+            if (ThroughWall == 0)
             {
-                //мы проиграли
-                moveTimer.Stop();
-                tbGameOver.Visibility = Visibility.Visible;
-                return;
+                // Snake can not go through
+                if (head.x < 40 || head.x >= 540 || head.y < 40 || head.y >= 540)
+                {
+                    moveTimer.Stop();
+                    tbGameOver.Visibility = Visibility.Visible;
+                    return;
+                }
             }
+            else
+            {
+                //Snake can go through
+                if (head.x < 40 || head.x >= 540 || head.y < 40 || head.y >= 540)
+                {
+                    //Determine the position the snake will be appeared after going through the walls
+                    if (head.x < 40)
+                    {
+                        head.x = head.x + 520;
+                    }
 
+                    if (head.x >= 540)
+                    {
+                        head.x = head.x - 520;
+                    }
+
+                    if (head.y < 40)
+                    {
+                        head.y = head.y + 520;
+                    }
+
+                    if (head.y >= 540)
+                    {
+                        head.y = head.y - 520;
+                    }
+                    CountWallTimes++;
+                }
+            }
             //проверяем, что голова змеи врезалась в яблоко
             if (head.x == apple.x && head.y == apple.y)
             {
-                //увеличиваем счет
+                // If snake meet the fruit,when FruitIndex==2, it means that fruit was a apple and the snake will have the helmet
+                // when snake takes the helmet, snake can go through the walls, Index count the times that snake go through walls begin calculate
+                if (FruitIndex == 2)
+                {
+                    CountWallTimes = 0;
+                    AddHeadHelmet();
+                }
+
+                //Random j from 0-100, each time 5 <= j <= 10 apple will be appeared. It means 5% a appear the apple in fruits 
+                Random randFruit = new Random();
+                int j = randFruit.Next(10);
+                if (j<=10&&j>=5)
+                {
+                    FruitIndex = 2;
+                }
                 score++;
-                //двигаем яблоко на новое место
-                apple.move();
-                // добавляем новый сегмент к змее
-                var part = new BodyPart(snake.Last());
-                canvas1.Children.Add(part.image);
-                snake.Add(part);
+                // apple appears
+                // Above have "if(FruitIndex == 2))" and in here it's also appeared.
+                // Because if don't have "if(FruitIndex == 2))" and "AddHeadHelmet();" inside this the snake will be have the Helmet before it get the apple
+                if (FruitIndex == 2)
+                {
+                    AddExtraApple();
+                    apple.move();
+                    var part = new BodyPart(snake.Last());
+                    canvas1.Children.Add(part.image);
+                    snake.Add(part);
+                    
+                }
+                else 
+                {
+                    AddFruit();
+                    apple.move();
+                    var part = new BodyPart(snake.Last());
+                    canvas1.Children.Add(part.image);
+                    snake.Add(part);
+                }
+            }
+
+            // if CountWallTimes == 5, the snake could not go through the walls
+            if (CountWallTimes == 5)
+            {
+                RemoveHeadHelmet();
+                CountWallTimes = 0;
             }
             //перерисовываем экран
             UpdateField();
         }
-
+        //Add helmet and remove helmet
+        void AddHeadHelmet()
+        {
+            head.image.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Resources/HeadHelmet.png") as ImageSource;
+            ThroughWall = 1;
+        }
+        void RemoveHeadHelmet()
+        {
+            head.image.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Resources/head.png") as ImageSource;
+            ThroughWall = 0;
+        }
+        //-----
+        //Add apple and add fruit
+        void AddFruit()
+        {
+            apple.image.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Resources/fruit.png") as ImageSource;
+        }
+        void AddExtraApple()
+        {
+            apple.image.Source = (new ImageSourceConverter()).ConvertFromString("pack://application:,,,/Resources/apple.png") as ImageSource;
+        }
+        //------
         // Обработчик нажатия на кнопку клавиатуры
         private void Window_KeyDown(object sender, KeyEventArgs e)
         {
@@ -155,8 +248,9 @@ namespace Snake
             head = new Head();
             snake.Add(head);
             canvas1.Children.Add(head.image);
-            
+
             //запускаем таймер
+            FruitIndex = 1;
             moveTimer.Start();
             UpdateField();
 
@@ -179,11 +273,16 @@ namespace Snake
 
             }
 
+            // Property image - added the set function. "m_image" could be accessed and change the value outside. Help for add Apple and Helmet
             public Image image
             {
                 get
                 {
                     return m_image;
+                }
+                set 
+                {
+                    m_image = value;
                 }
             }
         }
@@ -255,7 +354,6 @@ namespace Snake
                     if (!overlap)
                         break;
                 } while (true);
-
             }
         }
 
@@ -276,7 +374,7 @@ namespace Snake
                     image.RenderTransform = rotateTransform;
                 }
             }
-
+            //280, 280, 40, 40, "pack://application:,,,/Resources/HeadHelmet.png"
             public Head()
                 : base(280, 280, 40, 40, "pack://application:,,,/Resources/head.png")
             {
@@ -312,7 +410,6 @@ namespace Snake
             {
                 m_next = next;
             }
-
             public override void move()
             {
                 x = m_next.x;
